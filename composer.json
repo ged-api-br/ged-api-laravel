@@ -13,7 +13,7 @@
   "require": {
     "php": ">=8.0",
     "illuminate/support": "^9.0|^10.0|^11.0",
-    "ged/api-client": "^1.0"
+    "ged/api-client": "^1.0|dev-main"
   },
   "autoload": {
     "psr-4": {
