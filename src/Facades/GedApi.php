@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array completeSignature(string $pdfId, string $signatureBase64, string $certBase64)
  * @method static array verifySignature(string $pdfBase64)
  *
- * @see \Ged\ApiClient\GedApiClient
+ * @see \Ged\ApiLaravel\GedApiClient
  */
 class GedApi extends Facade
 {

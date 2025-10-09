@@ -3,7 +3,6 @@
 namespace Ged\ApiLaravel;
 
 use Illuminate\Support\ServiceProvider;
-use Ged\ApiClient\GedApiClient;
 
 class GedApiServiceProvider extends ServiceProvider
 {
