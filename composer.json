@@ -1,0 +1,36 @@
+{
+  "name": "ged/api-laravel",
+  "description": "Laravel Package para integração com GED API — Assinatura Digital ICP-Brasil",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Equipe GED API",
+      "email": "contato@ged.api.br",
+      "homepage": "https://ged.api.br"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^10.0|^11.0",
+    "ged/api-client": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ged\\ApiLaravel\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Ged\\ApiLaravel\\GedApiServiceProvider"
+      ],
+      "aliases": {
+        "GedApi": "Ged\\ApiLaravel\\Facades\\GedApi"
+      }
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
+
