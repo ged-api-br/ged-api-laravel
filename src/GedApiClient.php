@@ -14,7 +14,7 @@ class GedApiClient
         $this->http = new Client([
             'base_uri' => rtrim($baseUri, '/') . '/',
             'headers' => [
-                'Authorization' => "Bearer {$apiKey}",
+                'X-API-KEY' => $apiKey,
                 'Accept' => 'application/json',
             ],
             'timeout' => 60,
