@@ -34,7 +34,7 @@ GED_API_POLICY_HASH=a1b2c3d4...
 
 ---
 
-## 🎯 Uso Básico
+## 🎯 Uso Básico (legado)
 
 ### Usando a Facade
 
@@ -92,7 +92,7 @@ class DocumentController extends Controller
 
 ---
 
-## 📋 Métodos Disponíveis
+## 📋 Métodos Disponíveis (legado)
 
 Todos os métodos do `ged/api-client` estão disponíveis através da Facade:
 
@@ -146,4 +146,39 @@ MIT License - veja [LICENSE](LICENSE) para detalhes.
 ## 📄 Licença
 
 MIT
+
+---
+
+## ✒️ PAdES (novo fluxo recomendado)
+
+Autenticação: `Authorization: Bearer <API_KEY>` (compat `X-API-KEY` mantida).
+
+### Facade
+
+```php
+use Ged\ApiLaravel\Facades\GedApi;
+
+// 1) Prepare
+$prepare = GedApi::padesPrepareFromFile(storage_path('app/contrato.pdf'), false);
+$documentId = $prepare['document_id'];
+
+// 2) Cms Params
+$params = GedApi::padesCmsParams($documentId);
+// Assine $params['to_be_signed_der_hex'] localmente
+
+// 3) Inject
+$inject = GedApi::padesInject($documentId, $params['field_name'], $cmsDerHex);
+
+// 4) Finalize
+$final = GedApi::padesFinalize($documentId);
+Storage::put('assinado_pades.pdf', base64_decode($final['pdf_base64']));
+```
+
+### Novos métodos na Facade
+
+- `padesPrepareFromBase64(string $pdfBase64, bool $visible = false): array`
+- `padesPrepareFromFile(string $filePath, bool $visible = false): array`
+- `padesCmsParams(string $documentId, ?string $fieldName = null): array`
+- `padesInject(string $documentId, string $fieldName, string $signatureDerHex): array`
+- `padesFinalize(string $documentId): array`
 

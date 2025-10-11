@@ -36,12 +36,10 @@ use phpseclib3\File\X509;
  */
 class CmsBuilder
 {
-    private ASN1 $asn1;
     private X509 $x509;
 
     public function __construct()
     {
-        $this->asn1 = new ASN1();
         $this->x509 = new X509();
     }
 
@@ -88,7 +86,7 @@ class CmsBuilder
             ],
             'signedAttrs' => [
                 'context' => 0,
-                'value' => $this->asn1->decodeBER($signedAttributesDer)
+                'value' => ASN1::decodeBER($signedAttributesDer)
             ],
             'signatureAlgorithm' => [
                 'algorithm' => '1.2.840.113549.1.1.1' // rsaEncryption
@@ -110,7 +108,7 @@ class CmsBuilder
             'certificates' => [
                 [
                     'context' => 0,
-                    'value' => $this->asn1->decodeBER($certDer)
+                    'value' => ASN1::decodeBER($certDer)
                 ]
             ],
             'signerInfos' => [$signerInfo]
@@ -127,7 +125,7 @@ class CmsBuilder
 
         // === 6️⃣ Definir schema e codificar ===
         $schema = $this->getContentInfoSchema();
-        $der = $this->asn1->encodeDER($contentInfo, $schema);
+        $der = ASN1::encodeDER($contentInfo, $schema);
 
         if (!$der) {
             throw new \RuntimeException('Falha ao codificar CMS em DER');

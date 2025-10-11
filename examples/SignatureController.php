@@ -112,5 +112,55 @@ class SignatureController extends Controller
             ], 400);
         }
     }
+
+    /**
+     * Novo fluxo PAdES (prepare → cms-params → inject → finalize)
+     */
+    public function startPades(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf|max:10240',
+            'certificate' => 'required|file', // PFX
+            'password' => 'required|string',
+        ]);
+
+        try {
+            // 1) Prepare (pode ser visível=false por padrão)
+            $prepare = GedApi::padesPrepareFromFile($request->file('file')->getRealPath(), false);
+            $documentId = $prepare['document_id'];
+
+            // 2) Cms Params (dados para assinar localmente)
+            $params = GedApi::padesCmsParams($documentId);
+
+            // 3) Assina localmente os dados (A1)
+            $pfxData = $request->file('certificate')->get();
+            $password = $request->input('password');
+            openssl_pkcs12_read($pfxData, $certs, $password);
+
+            $toBeSignedDer = hex2bin($params['to_be_signed_der_hex']);
+            openssl_sign($toBeSignedDer, $cmsDer, $certs['pkey'], OPENSSL_ALGO_SHA256);
+            $cmsDerHex = bin2hex($cmsDer);
+
+            // 4) Inject
+            $inject = GedApi::padesInject($documentId, $params['field_name'], $cmsDerHex);
+
+            // 5) Finalize
+            $final = GedApi::padesFinalize($documentId);
+            $filename = 'signed_pades_' . time() . '.pdf';
+            Storage::put("signatures/{$filename}", base64_decode($final['pdf_base64']));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'PDF assinado (PAdES) com sucesso',
+                'file' => $filename,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }
 
