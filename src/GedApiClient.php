@@ -103,9 +103,12 @@ class GedApiClient
     }
 
     /** CMS Params (FASE 2) */
-    public function padesCmsParams(string $documentId, ?string $fieldName = null): array
+    public function padesCmsParams(string $documentId, string $signerCertDerBase64, ?string $fieldName = null): array
     {
-        $payload = ['document_id' => $documentId];
+        $payload = [
+            'document_id' => $documentId,
+            'signer_cert_der_base64' => $signerCertDerBase64,
+        ];
         if ($fieldName) { $payload['field_name'] = $fieldName; }
         return $this->post('pades/cms-params', $payload);
     }

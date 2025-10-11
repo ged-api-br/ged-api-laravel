@@ -162,8 +162,9 @@ use Ged\ApiLaravel\Facades\GedApi;
 $prepare = GedApi::padesPrepareFromFile(storage_path('app/contrato.pdf'), false, $anots ?? null);
 $documentId = $prepare['document_id'];
 
-// 2) Cms Params
-$params = GedApi::padesCmsParams($documentId);
+// 2) Cms Params (enviar certificado do signatário em DER/base64)
+$signerCertDerBase64 = base64_encode($certDer);
+$params = GedApi::padesCmsParams($documentId, $signerCertDerBase64);
 // Assine $params['to_be_signed_der_hex'] localmente
 
 // 3) Inject (duas opções)
