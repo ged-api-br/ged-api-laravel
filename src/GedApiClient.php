@@ -72,22 +72,29 @@ class GedApiClient
     // ===== PAdES (novo fluxo) =====
 
     /** Prepare (FASE 1) */
-    public function padesPrepareFromBase64(string $pdfBase64, bool $visible = false): array
+    public function padesPrepareFromBase64(string $pdfBase64, bool $visible = false, ?array $anots = null): array
     {
-        return $this->post('pades/prepare', [
+        $payload = [
             'fileBase64' => $pdfBase64,
             'visible' => $visible,
-        ]);
+        ];
+        if ($anots !== null) {
+            $payload['anots'] = $anots; // futuras anotações/visuais
+        }
+        return $this->post('pades/prepare', $payload);
     }
 
     /** Prepare com multipart (arquivo local) */
-    public function padesPrepareFromFile(string $filePath, bool $visible = false): array
+    public function padesPrepareFromFile(string $filePath, bool $visible = false, ?array $anots = null): array
     {
         try {
             $multipart = [
                 ['name' => 'file', 'contents' => fopen($filePath, 'r'), 'filename' => basename($filePath)],
                 ['name' => 'visible', 'contents' => $visible ? '1' : '0'],
             ];
+            if ($anots !== null) {
+                $multipart[] = ['name' => 'anots', 'contents' => json_encode($anots)];
+            }
             $response = $this->http->post('pades/prepare', ['multipart' => $multipart]);
             return json_decode($response->getBody()->getContents(), true);
         } catch (\Throwable $e) {
@@ -117,6 +124,26 @@ class GedApiClient
     public function padesFinalize(string $documentId): array
     {
         return $this->post('pades/finalize', ['document_id' => $documentId]);
+    }
+
+    /** Inject (FASE 3) com assinatura crua PKCS#1 e certificado do signatário */
+    public function padesInjectPkcs1(
+        string $documentId,
+        string $fieldName,
+        string $signaturePkcs1DerHex,
+        string $signerCertDerBase64,
+        ?array $signerChainDerBase64 = null
+    ): array {
+        $payload = [
+            'document_id' => $documentId,
+            'field_name' => $fieldName,
+            'signature_pkcs1_der_hex' => $signaturePkcs1DerHex,
+            'signer_cert_der_base64' => $signerCertDerBase64,
+        ];
+        if ($signerChainDerBase64) {
+            $payload['signer_chain_der_base64'] = $signerChainDerBase64;
+        }
+        return $this->post('pades/inject', $payload);
     }
 }
 

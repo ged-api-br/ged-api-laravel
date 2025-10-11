@@ -158,16 +158,19 @@ Autenticação: `Authorization: Bearer <API_KEY>` (compat `X-API-KEY` mantida).
 ```php
 use Ged\ApiLaravel\Facades\GedApi;
 
-// 1) Prepare
-$prepare = GedApi::padesPrepareFromFile(storage_path('app/contrato.pdf'), false);
+// 1) Prepare (com opção de anotações futuras)
+$prepare = GedApi::padesPrepareFromFile(storage_path('app/contrato.pdf'), false, $anots ?? null);
 $documentId = $prepare['document_id'];
 
 // 2) Cms Params
 $params = GedApi::padesCmsParams($documentId);
 // Assine $params['to_be_signed_der_hex'] localmente
 
-// 3) Inject
+// 3) Inject (duas opções)
+// a) Enviando CMS DER pronto (modo atual)
 $inject = GedApi::padesInject($documentId, $params['field_name'], $cmsDerHex);
+// b) Enviando assinatura crua PKCS#1 + certificado (servidor monta CMS)
+//$inject = GedApi::padesInjectPkcs1($documentId, $params['field_name'], $pkcs1DerHex, base64_encode($certDer));
 
 // 4) Finalize
 $final = GedApi::padesFinalize($documentId);
