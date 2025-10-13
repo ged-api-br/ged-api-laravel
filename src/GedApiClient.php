@@ -2,25 +2,18 @@
 
 namespace Ged\ApiLaravel;
 
-use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
 use Ged\ApiLaravel\Exceptions\GedApiException;
 
 class GedApiClient
 {
-    protected Client $http;
+    protected string $baseUri;
+    protected string $apiKey;
 
     public function __construct(string $baseUri, string $apiKey)
     {
-        $this->http = new Client([
-            'base_uri' => rtrim($baseUri, '/') . '/',
-            'headers' => [
-                // Preferimos Bearer; manter compat X-API-KEY se necessário
-                'Authorization' => 'Bearer ' . $apiKey,
-                'X-API-KEY' => $apiKey,
-                'Accept' => 'application/json',
-            ],
-            'timeout' => 60,
-        ]);
+        $this->baseUri = rtrim($baseUri, '/') . '/';
+        $this->apiKey = $apiKey;
     }
 
     /**
@@ -57,15 +50,32 @@ class GedApiClient
     }
 
     /**
-     * Método interno para padronizar requisições e erros
+     * Método para padronizar requisições POST
      */
-    private function post(string $endpoint, array $payload): array
+    public function post(string $endpoint, array $payload): array
     {
         try {
-            $response = $this->http->post($endpoint, ['json' => $payload]);
-            return json_decode($response->getBody()->getContents(), true);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-API-KEY' => $this->apiKey,
+                'Accept' => 'application/json',
+            ])
+            ->timeout(60)
+            ->post($this->baseUri . $endpoint, $payload);
+            
+            if ($response->failed()) {
+                throw new GedApiException(
+                    $response->json('message') ?? 'Erro na requisição',
+                    $response->status()
+                );
+            }
+            
+            return $response->json();
+            
+        } catch (GedApiException $e) {
+            throw $e;
         } catch (\Throwable $e) {
-            throw new GedApiException($e->getMessage(), $e->getCode());
+            throw new GedApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -88,17 +98,34 @@ class GedApiClient
     public function padesPrepareFromFile(string $filePath, bool $visible = false, ?array $anots = null): array
     {
         try {
-            $multipart = [
-                ['name' => 'file', 'contents' => fopen($filePath, 'r'), 'filename' => basename($filePath)],
-                ['name' => 'visible', 'contents' => $visible ? '1' : '0'],
-            ];
+            $request = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-API-KEY' => $this->apiKey,
+            ])
+            ->timeout(60)
+            ->attach('file', file_get_contents($filePath), basename($filePath));
+            
+            // Adicionar campos
+            $fields = ['visible' => $visible ? '1' : '0'];
             if ($anots !== null) {
-                $multipart[] = ['name' => 'anots', 'contents' => json_encode($anots)];
+                $fields['anots'] = json_encode($anots);
             }
-            $response = $this->http->post('pades/prepare', ['multipart' => $multipart]);
-            return json_decode($response->getBody()->getContents(), true);
+            
+            $response = $request->post($this->baseUri . 'pades/prepare', $fields);
+            
+            if ($response->failed()) {
+                throw new GedApiException(
+                    $response->json('message') ?? 'Erro na requisição',
+                    $response->status()
+                );
+            }
+            
+            return $response->json();
+            
+        } catch (GedApiException $e) {
+            throw $e;
         } catch (\Throwable $e) {
-            throw new GedApiException($e->getMessage(), $e->getCode());
+            throw new GedApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
 

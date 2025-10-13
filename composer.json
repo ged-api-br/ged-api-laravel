@@ -1,12 +1,23 @@
 {
   "name": "ged/api-laravel",
-  "description": "Laravel Package para integração com GED API — Assinatura Digital ICP-Brasil",
+  "version": "2.0.0",
+  "description": "Laravel Package para integração com GED API — Assinatura Digital PAdES ICP-Brasil em 3 Fases",
   "type": "library",
   "license": "MIT",
+  "keywords": [
+    "laravel",
+    "assinatura-digital",
+    "pades",
+    "icp-brasil",
+    "certificado-digital",
+    "pkcs7",
+    "cms",
+    "pdf-signature"
+  ],
   "authors": [
     {
       "name": "Equipe GED API",
-      "email": "contato@ged.api.br",
+      "email": "suporte@ged.api.br",
       "homepage": "https://ged.api.br"
     }
   ],

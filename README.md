@@ -149,9 +149,237 @@ MIT
 
 ---
 
-## ✒️ PAdES (novo fluxo recomendado)
+## ✨ **Assinatura Digital PAdES em 3 Fases** (Novo - Recomendado)
 
-Autenticação: `Authorization: Bearer <API_KEY>` (compat `X-API-KEY` mantida).
+O SDK agora suporta o **padrão de 3 fases** para assinatura digital PAdES, garantindo máxima segurança ao manter a chave privada sempre no cliente.
+
+### 🎯 Por Que 3 Fases?
+
+- ✅ **Segurança Máxima:** Chave privada nunca sai do cliente
+- ✅ **Compatibilidade:** Funciona com certificados A1 e A3 (token/smartcard)
+- ✅ **ICP-Brasil:** Suporta políticas oficiais homologadas pelo ITI
+- ✅ **Flexibilidade:** Permite assinatura remota e visual
+
+---
+
+### 📋 Fluxo das 3 Fases
+
+```
+┌──────────────────────────────────────────────────────┐
+│ FASE 1: STARTER (Cliente → Servidor)                │
+│ ────────────────────────────────────────────────     │
+│ • Cliente envia: PDF + Certificado Público          │
+│ • Servidor retorna: Token + Hash para assinar       │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│ FASE 2: SIGN (Cliente local)                        │
+│ ────────────────────────────────────────────────     │
+│ • Cliente assina o hash com chave privada           │
+│ • Constrói estrutura CMS/PKCS#7                      │
+└──────────────────────────────────────────────────────┘
+                        ↓
+┌──────────────────────────────────────────────────────┐
+│ FASE 3: FINISH (Cliente → Servidor)                 │
+│ ────────────────────────────────────────────────────     │
+│ • Cliente envia: CMS assinado                        │
+│ • Servidor retorna: PDF assinado completo            │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 FASE 1: Iniciar Assinatura (PadesSignatureStarter)
+
+### Exemplo Rápido
+
+```php
+use Ged\ApiLaravel\GedApiClient;
+use Ged\ApiLaravel\PadesSignatureStarter;
+use Ged\ApiLaravel\Constants\StandardSignaturePolicies;
+use Ged\ApiLaravel\Support\CertificateHelper;
+
+// 1. Criar cliente da API
+$client = new GedApiClient(
+    baseUri: 'https://sua-api.com.br/api',
+    apiKey: 'sua-api-key'
+);
+
+// 2. Carregar certificado digital (.pfx)
+$certHelper = new CertificateHelper();
+$certData = $certHelper->loadPfx('/path/to/certificado.pfx', 'senha123');
+
+// 3. Configurar e iniciar assinatura
+$starter = new PadesSignatureStarter($client);
+$starter->setPdfToSignFromPath('/path/to/documento.pdf');
+$starter->setSignerCertificateRaw($certData['certificate']);
+$starter->setSignaturePolicy(StandardSignaturePolicies::PADES_ICPBR_ADR_BASICA);
+
+// 4. Iniciar (retorna parâmetros para Fase 2)
+$params = $starter->start();
+
+// Resultado:
+// $params->token           → Token único da sessão
+// $params->toSignHash      → Hash que deve ser assinado
+// $params->toSignData      → Dados completos para assinar
+// $params->digestAlgorithmOid → OID do algoritmo (SHA-256, etc.)
+```
+
+### Políticas de Assinatura Disponíveis
+
+#### **Políticas ICP-Brasil (Oficiais)**
+
+```php
+use Ged\ApiLaravel\Constants\StandardSignaturePolicies;
+
+// PAdES ICP-Brasil - Assinatura Digital com Referências Básicas
+// OID: 2.16.76.1.7.1.11.1.1 (DOC-ICP-15.04)
+StandardSignaturePolicies::PADES_ICPBR_ADR_BASICA
+
+// PAdES ICP-Brasil - Assinatura Digital com Referências de Tempo
+// OID: 2.16.76.1.7.1.11.1.2 (DOC-ICP-15.04)
+StandardSignaturePolicies::PADES_ICPBR_ADR_TEMPO
+
+// CAdES ICP-Brasil - Assinatura Digital com Referências Básicas
+// OID: 2.16.76.1.7.1.1.2.1 (DOC-ICP-15.03)
+StandardSignaturePolicies::CADES_ICPBR_ADR_BASICA
+
+// CAdES ICP-Brasil - Assinatura Digital com Referências de Tempo
+// OID: 2.16.76.1.7.1.2.2.1 (DOC-ICP-15.03)
+StandardSignaturePolicies::CADES_ICPBR_ADR_TEMPO
+```
+
+#### **Políticas Genéricas (Não ICP-Brasil)**
+
+```php
+// PAdES Básico (para uso geral)
+StandardSignaturePolicies::PADES_BASIC
+
+// PAdES com Timestamp
+StandardSignaturePolicies::PADES_WITH_TIMESTAMP
+
+// PAdES compatível com Adobe Reader
+StandardSignaturePolicies::PADES_ADOBE_COMPATIBLE
+```
+
+### Métodos de Configuração
+
+#### **Configurar PDF**
+
+```php
+// A partir de arquivo
+$starter->setPdfToSignFromPath('/path/to/file.pdf');
+
+// A partir de base64
+$starter->setPdfToSignFromContentBase64($base64Content);
+
+// A partir de conteúdo bruto
+$starter->setPdfToSignFromContentRaw($binaryContent);
+
+// A partir de URL
+$starter->setPdfToSignFromUrl('https://example.com/document.pdf');
+
+// A partir de resultado anterior
+$starter->setPdfToSignFromResult($previousToken);
+```
+
+#### **Configurar Certificado**
+
+```php
+// Formato DER (binário)
+$starter->setSignerCertificateRaw($certDer);
+
+// Formato base64
+$starter->setSignerCertificateBase64($certBase64);
+
+// Formato PEM
+$starter->setSignerCertificatePem($certPem);
+
+// A partir de arquivo
+$starter->setSignerCertificateFromFile('/path/to/cert.cer');
+```
+
+#### **Configurar Representação Visual (Opcional)**
+
+```php
+// Modo simples
+$starter->setSimpleVisualRepresentation(
+    text: 'Assinado digitalmente por {{name}} em {{date}}',
+    fontSize: 10
+);
+
+// Modo avançado
+$starter->setVisualRepresentation([
+    'text' => [
+        'text' => 'Assinado digitalmente por {{name}}',
+        'fontSize' => 10,
+        'includeSigningTime' => true,
+    ],
+    'position' => [
+        'pageNumber' => -1, // última página
+        'auto' => 'newPage', // ou 'leftMargin', 'rightMargin'
+    ],
+]);
+```
+
+### Informações sobre Políticas
+
+```php
+use Ged\ApiLaravel\Constants\StandardSignaturePolicies;
+
+// Obter OID oficial
+$oid = StandardSignaturePolicies::getOid('pades-icpbr-adr-basica');
+// Retorna: '2.16.76.1.7.1.11.1.1'
+
+// Verificar se requer timestamp
+$requiresTimestamp = StandardSignaturePolicies::requiresTimestamp('pades-icpbr-adr-tempo');
+// Retorna: true
+
+// Verificar se é ICP-Brasil
+$isIcpBrasil = StandardSignaturePolicies::isIcpBrasil('pades-icpbr-adr-basica');
+// Retorna: true
+
+// Obter informações completas
+$info = StandardSignaturePolicies::getInfo('pades-icpbr-adr-basica');
+// Retorna: ['id', 'name', 'oid', 'requiresTimestamp', 'isIcpBrasil', 'type']
+```
+
+### Trabalhando com Certificados
+
+```php
+use Ged\ApiLaravel\Support\CertificateHelper;
+
+$certHelper = new CertificateHelper();
+
+// Carregar certificado PFX/P12 (A1)
+$certData = $certHelper->loadPfx('/path/to/cert.pfx', 'senha');
+// Retorna: ['certificate', 'certificatePem', 'privateKey', 'privateKeyPem', 'chain']
+
+// Extrair informações do certificado
+$info = $certHelper->extractInfo($certData['certificate']);
+// Retorna: ['subjectName', 'issuerName', 'serialNumber', 'validityStart', 
+//           'validityEnd', 'emailAddress', 'cpf', 'cnpj', 'commonName', etc.]
+
+// Verificar validade
+$isValid = $certHelper->isValid($certData['certificate']);
+
+// Converter formatos
+$certPem = $certHelper->derToPem($certDer);
+$certDer = $certHelper->pemToDer($certPem);
+```
+
+---
+
+## 📚 Exemplos Completos
+
+Veja os exemplos detalhados em:
+- `examples/PadesSignaturePhase1Example.php` - FASE 1 (Starter)
+- `examples/PadesSignaturePhase2Example.php` - FASE 2 (Sign) - Em breve
+- `examples/PadesSignaturePhase3Example.php` - FASE 3 (Finish) - Em breve
+
+---
+
+## 🔄 Fluxo Legado (4 fases)
 
 ### Facade
 
@@ -178,7 +406,7 @@ $final = GedApi::padesFinalize($documentId);
 Storage::put('assinado_pades.pdf', base64_decode($final['pdf_base64']));
 ```
 
-### Novos métodos na Facade
+### Métodos da Facade (legado)
 
 - `padesPrepareFromBase64(string $pdfBase64, bool $visible = false): array`
 - `padesPrepareFromFile(string $filePath, bool $visible = false): array`
