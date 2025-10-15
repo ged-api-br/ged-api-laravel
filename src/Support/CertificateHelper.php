@@ -495,14 +495,23 @@ class CertificateHelper
      * Retorna caminho do arquivo de configuração OpenSSL legacy
      * Necessário para OpenSSL 3.x com certificados antigos
      * 
+     * Ordem de prioridade:
+     * 1. Raiz do projeto Laravel (publicado via vendor:publish)
+     * 2. Dentro do vendor do SDK (fallback automático)
+     * 3. Sistema (/etc/ssl - Linux)
+     * 
      * @return string|null
      */
     private function getOpensslLegacyConfig(): ?string
     {
-        // Procurar arquivo de configuração legacy
         $possiblePaths = [
-            '/Applications/XAMPP/xamppfiles/htdocs/camaratech/api/openssl_legacy.cnf',
-            __DIR__ . '/../../../../../../../openssl_legacy.cnf',
+            // 1. Raiz do projeto (publicado)
+            base_path('openssl_legacy.cnf'),
+            
+            // 2. Dentro do vendor do SDK (fallback - sempre disponível)
+            __DIR__ . '/../../config/openssl_legacy.cnf',
+            
+            // 3. Sistema (Linux)
             '/etc/ssl/openssl_legacy.cnf',
         ];
 

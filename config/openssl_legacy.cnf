@@ -1,0 +1,29 @@
+# ==============================================================================
+# OpenSSL Configuration for Legacy Algorithm Support
+# ==============================================================================
+#
+# Este arquivo habilita suporte a algoritmos antigos (legacy) no OpenSSL 3.x
+# Necessário para certificados ICP-Brasil que usam 3DES, RC2, etc.
+#
+# Uso:
+#   export OPENSSL_CONF=/caminho/para/este/arquivo
+#   ou
+#   putenv("OPENSSL_CONF=/caminho/para/este/arquivo");
+#
+# ==============================================================================
+
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+

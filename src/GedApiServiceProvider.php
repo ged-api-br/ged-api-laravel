@@ -40,6 +40,17 @@ class GedApiServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../config/ged-api.php' => config_path('ged-api.php'),
         ], 'ged-api-config');
+
+        // Publish OpenSSL legacy config (para suporte a certificados antigos)
+        $this->publishes([
+            __DIR__ . '/../config/openssl_legacy.cnf' => base_path('openssl_legacy.cnf'),
+        ], 'ged-api-openssl');
+
+        // Publish all
+        $this->publishes([
+            __DIR__ . '/../config/ged-api.php' => config_path('ged-api.php'),
+            __DIR__ . '/../config/openssl_legacy.cnf' => base_path('openssl_legacy.cnf'),
+        ], 'ged-api');
     }
 
     /**
