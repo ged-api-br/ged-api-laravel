@@ -56,8 +56,23 @@ class CertificateHelper
     {
         $certs = [];
         
+        // Configurar OpenSSL para suportar algoritmos legacy (OpenSSL 3.x)
+        $opensslConf = $this->getOpensslLegacyConfig();
+        if ($opensslConf) {
+            putenv("OPENSSL_CONF={$opensslConf}");
+        }
+        
         if (!openssl_pkcs12_read($pfxContent, $certs, $password)) {
+            // Limpar configuração
+            if ($opensslConf) {
+                putenv("OPENSSL_CONF");
+            }
             throw new GedApiException("Erro ao ler certificado PFX. Senha incorreta ou arquivo corrompido.");
+        }
+        
+        // Limpar configuração
+        if ($opensslConf) {
+            putenv("OPENSSL_CONF");
         }
         
         // Converter certificado de PEM para DER
@@ -388,6 +403,116 @@ class CertificateHelper
         }
         
         return date('Y-m-d\TH:i:s\Z', $timestamp);
+    }
+
+    // ===== EXTRAÇÃO DE CHAVE PÚBLICA =====
+
+    /**
+     * Extrai chave pública DER base64 de certificado (multi-formato)
+     * 
+     * Suporta:
+     * - PFX/P12 (PKCS#12) - Requer senha
+     * - PEM (texto com headers)
+     * - CER/DER (binário)
+     * - CRT (pode ser PEM ou DER)
+     * 
+     * @param string $certContent - Conteúdo do certificado
+     * @param string $format - Formato: pfx, p12, pem, cer, der, crt
+     * @param string|null $password - Senha (obrigatória para PFX/P12)
+     * @return string - Base64 da chave pública DER
+     * @throws GedApiException
+     */
+    public function extractPublicKeyDerBase64(string $certContent, string $format, ?string $password = null): string
+    {
+        $format = strtolower($format);
+
+        // 1. PFX/P12 (PKCS#12)
+        if (in_array($format, ['pfx', 'p12'])) {
+            $result = $this->loadPfxFromContent($certContent, $password ?? '');
+            return base64_encode($result['certificate']);
+        }
+
+        // 2. PEM (texto)
+        if ($format === 'pem' || strpos($certContent, '-----BEGIN CERTIFICATE-----') !== false) {
+            // Extrair apenas a parte do certificado (ignorar Bag Attributes)
+            if (preg_match('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $certContent, $matches)) {
+                // Remover espaços e quebras de linha
+                return preg_replace('/\s+/', '', $matches[1]);
+            }
+            
+            // Fallback: remover headers manualmente
+            return str_replace([
+                '-----BEGIN CERTIFICATE-----',
+                '-----END CERTIFICATE-----',
+                "\r", "\n", ' '
+            ], '', $certContent);
+        }
+
+        // 3. CER/DER/CRT (binário)
+        if (in_array($format, ['cer', 'der', 'crt'])) {
+            // Verificar se é PEM ou binário
+            if (strpos($certContent, '-----BEGIN CERTIFICATE-----') !== false) {
+                // É PEM - extrair apenas o certificado
+                if (preg_match('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $certContent, $matches)) {
+                    return preg_replace('/\s+/', '', $matches[1]);
+                }
+                // Fallback
+                return str_replace([
+                    '-----BEGIN CERTIFICATE-----',
+                    '-----END CERTIFICATE-----',
+                    "\r", "\n", ' '
+                ], '', $certContent);
+            } else {
+                // É DER binário - converter para base64
+                return base64_encode($certContent);
+            }
+        }
+
+        throw new GedApiException("Formato não suportado: {$format}");
+    }
+
+    /**
+     * Extrai chave pública de arquivo
+     * 
+     * @param string $filePath - Caminho do arquivo
+     * @param string|null $password - Senha (para PFX/P12)
+     * @return string - Base64 da chave pública DER
+     * @throws GedApiException
+     */
+    public function extractPublicKeyFromFile(string $filePath, ?string $password = null): string
+    {
+        if (!file_exists($filePath)) {
+            throw new GedApiException("Arquivo não encontrado: {$filePath}");
+        }
+
+        $content = file_get_contents($filePath);
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+        return $this->extractPublicKeyDerBase64($content, $extension, $password);
+    }
+
+    /**
+     * Retorna caminho do arquivo de configuração OpenSSL legacy
+     * Necessário para OpenSSL 3.x com certificados antigos
+     * 
+     * @return string|null
+     */
+    private function getOpensslLegacyConfig(): ?string
+    {
+        // Procurar arquivo de configuração legacy
+        $possiblePaths = [
+            '/Applications/XAMPP/xamppfiles/htdocs/camaratech/api/openssl_legacy.cnf',
+            __DIR__ . '/../../../../../../../openssl_legacy.cnf',
+            '/etc/ssl/openssl_legacy.cnf',
+        ];
+
+        foreach ($possiblePaths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 }
 

@@ -50,6 +50,36 @@ class GedApiClient
     }
 
     /**
+     * Método para padronizar requisições GET
+     */
+    public function get(string $endpoint, array $query = []): array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-API-KEY' => $this->apiKey,
+                'Accept' => 'application/json',
+            ])
+            ->timeout(60)
+            ->get($this->baseUri . $endpoint, $query);
+            
+            if ($response->failed()) {
+                throw new GedApiException(
+                    $response->json('message') ?? 'Erro na requisição',
+                    $response->status()
+                );
+            }
+            
+            return $response->json();
+            
+        } catch (GedApiException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new GedApiException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    /**
      * Método para padronizar requisições POST
      */
     public function post(string $endpoint, array $payload): array
@@ -154,6 +184,54 @@ class GedApiClient
     public function padesFinalize(string $documentId): array
     {
         return $this->post('pades/finalize', ['document_id' => $documentId]);
+    }
+
+    // ===== CERTIFICADOS =====
+
+    /**
+     * Extrair chave pública de um certificado
+     * 
+     * Suporta múltiplos formatos: PFX, P12, PEM, CER, DER, CRT
+     * 
+     * @param string $certificateContent - Conteúdo binário do certificado
+     * @param string|null $password - Senha (obrigatória para PFX/P12)
+     * @param string|null $fileName - Nome do arquivo (para detectar formato)
+     * @return array - ['success' => true, 'data' => ['public_key_der_base64' => '...']]
+     */
+    public function extractPublicKey(string $certificateContent, ?string $password = null, ?string $fileName = null): array
+    {
+        $payload = [
+            'certificateBase64' => base64_encode($certificateContent),
+        ];
+
+        if ($password) {
+            $payload['password'] = $password;
+        }
+
+        if ($fileName) {
+            $payload['fileName'] = $fileName;
+        }
+
+        return $this->post('certificate/extract-public-key', $payload);
+    }
+
+    /**
+     * Extrair chave pública de um arquivo de certificado
+     * 
+     * @param string $filePath - Caminho do arquivo
+     * @param string|null $password - Senha (obrigatória para PFX/P12)
+     * @return array - ['success' => true, 'data' => ['public_key_der_base64' => '...']]
+     */
+    public function extractPublicKeyFromFile(string $filePath, ?string $password = null): array
+    {
+        if (!file_exists($filePath)) {
+            throw new GedApiException("Arquivo não encontrado: {$filePath}", 404);
+        }
+
+        $content = file_get_contents($filePath);
+        $fileName = basename($filePath);
+
+        return $this->extractPublicKey($content, $password, $fileName);
     }
 
     /** Inject (FASE 3) com assinatura crua PKCS#1 e certificado do signatário */
