@@ -514,5 +514,68 @@ class CertificateHelper
 
         return null;
     }
+
+    // ===== ASSINATURA LOCAL =====
+
+    /**
+     * Assinar hash pré-calculado com chave privada (PKCS#1 raw - SEM double hash)
+     * 
+     * IMPORTANTE: Para assinaturas PAdES/CMS, o hash JÁ foi calculado (SHA-256 dos signedAttrs).
+     * Este método assina esse digest DIRETAMENTE sem recalcular hash (evita double hash).
+     * 
+     * @param string $hashHex - Hash SHA-256 em hexadecimal (64 chars)
+     * @param resource $privateKey - Chave privada (resource do openssl_pkey_get_private)
+     * @param int $algorithm - Algoritmo (OPENSSL_ALGO_SHA256, etc) - IGNORADO! Usamos PKCS#1 raw
+     * @return string - Assinatura PKCS#1 em hex
+     * @throws GedApiException
+     */
+    public function signHash(string $hashHex, $privateKey, int $algorithm = OPENSSL_ALGO_SHA256): string
+    {
+        // Converter hash hex para binário
+        if (ctype_xdigit($hashHex)) {
+            $digest = hex2bin($hashHex);
+        } else {
+            $digest = $hashHex;
+        }
+        
+        // Verificar tamanho do hash (SHA-256 = 32 bytes)
+        if (strlen($digest) !== 32) {
+            throw new GedApiException(
+                "Hash inválido: esperado 32 bytes (SHA-256), recebido " . strlen($digest) . " bytes"
+            );
+        }
+        
+        // =============================================
+        // ASSINAR DIGEST DIRETAMENTE (PKCS#1 raw)
+        // =============================================
+        // openssl_sign() faria double-hash, então usamos openssl_private_encrypt
+        // com DigestInfo manual para SHA-256
+        
+        // DigestInfo para SHA-256 (RFC 3447 - PKCS#1 v2.1)
+        // SEQUENCE {
+        //   SEQUENCE {
+        //     OBJECT IDENTIFIER sha256 (2.16.840.1.101.3.4.2.1)
+        //     NULL
+        //   }
+        //   OCTET STRING <hash>
+        // }
+        $digestInfo = hex2bin(
+            '3031' .           // SEQUENCE 49 bytes
+            '300d' .           // SEQUENCE 13 bytes
+            '0609' .           // OBJECT IDENTIFIER 9 bytes
+            '608648016503040201' .  // sha256 OID
+            '0500' .           // NULL
+            '0420'             // OCTET STRING 32 bytes
+        ) . $digest;
+        
+        $signature = '';
+        
+        // Assinar DigestInfo com PKCS#1 padding
+        if (!openssl_private_encrypt($digestInfo, $signature, $privateKey, OPENSSL_PKCS1_PADDING)) {
+            throw new GedApiException("Erro ao assinar digest com chave privada (PKCS#1)");
+        }
+        
+        return bin2hex($signature);
+    }
 }
 

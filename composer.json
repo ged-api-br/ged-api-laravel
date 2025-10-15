@@ -1,6 +1,6 @@
 {
   "name": "ged/api-laravel",
-    "version": "2.1.0",
+    "version": "2.2.0",
   "description": "Laravel Package para integração com GED API — Assinatura Digital PAdES ICP-Brasil em 3 Fases",
   "type": "library",
   "license": "MIT",
