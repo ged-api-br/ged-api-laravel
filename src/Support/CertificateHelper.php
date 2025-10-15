@@ -56,23 +56,79 @@ class CertificateHelper
     {
         $certs = [];
         
-        // Configurar OpenSSL para suportar algoritmos legacy (OpenSSL 3.x)
-        $opensslConf = $this->getOpensslLegacyConfig();
-        if ($opensslConf) {
-            putenv("OPENSSL_CONF={$opensslConf}");
-        }
+        // =====================================================
+        // MÉTODO 1: Usar OpenSSL CLI com flag -legacy
+        // =====================================================
+        // OpenSSL CLI suporta -legacy flag que ativa algoritmos antigos (3DES, RC2)
+        // Mais confiável que putenv() em ambientes PHP/FPM
         
-        if (!openssl_pkcs12_read($pfxContent, $certs, $password)) {
-            // Limpar configuração
-            if ($opensslConf) {
-                putenv("OPENSSL_CONF");
+        $tempPfx = tempnam(sys_get_temp_dir(), 'pfx_') . '.p12';
+        $tempPem = tempnam(sys_get_temp_dir(), 'pem_') . '.pem';
+        
+        try {
+            file_put_contents($tempPfx, $pfxContent);
+            
+            // Usar OpenSSL CLI com flag -legacy (suporte a 3DES, RC2, etc)
+            $command = sprintf(
+                'openssl pkcs12 -in %s -out %s -nodes -legacy -password pass:%s 2>&1',
+                escapeshellarg($tempPfx),
+                escapeshellarg($tempPem),
+                escapeshellarg($password)
+            );
+            
+            exec($command, $output, $returnCode);
+            
+            if ($returnCode === 0 && file_exists($tempPem)) {
+                // Sucesso! Ler o PEM gerado
+                $pemContent = file_get_contents($tempPem);
+                
+                // Extrair certificado, chave privada e chain do PEM
+                if (!preg_match_all('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $pemContent, $certMatches)) {
+                    throw new \Exception("Nenhum certificado encontrado no PEM");
+                }
+                
+                if (!preg_match('/-----BEGIN PRIVATE KEY-----(.+?)-----END PRIVATE KEY-----/s', $pemContent, $keyMatch)) {
+                    throw new \Exception("Nenhuma chave privada encontrada no PEM");
+                }
+                
+                $certs = [
+                    'cert' => '-----BEGIN CERTIFICATE-----' . $certMatches[1][0] . '-----END CERTIFICATE-----',
+                    'pkey' => '-----BEGIN PRIVATE KEY-----' . $keyMatch[1] . '-----END PRIVATE KEY-----',
+                    'extracerts' => []
+                ];
+                
+                // Chain (se houver mais de 1 certificado)
+                if (count($certMatches[0]) > 1) {
+                    for ($i = 1; $i < count($certMatches[0]); $i++) {
+                        $certs['extracerts'][] = $certMatches[0][$i];
+                    }
+                }
+                
+            } else {
+                // =====================================================
+                // MÉTODO 2 (FALLBACK): openssl_pkcs12_read() com putenv
+                // =====================================================
+                $opensslConf = $this->getOpensslLegacyConfig();
+                if ($opensslConf) {
+                    putenv("OPENSSL_CONF={$opensslConf}");
+                }
+                
+                if (!openssl_pkcs12_read($pfxContent, $certs, $password)) {
+                    if ($opensslConf) {
+                        putenv("OPENSSL_CONF");
+                    }
+                    throw new GedApiException("Erro ao ler certificado PFX. Senha incorreta ou arquivo corrompido.");
+                }
+                
+                if ($opensslConf) {
+                    putenv("OPENSSL_CONF");
+                }
             }
-            throw new GedApiException("Erro ao ler certificado PFX. Senha incorreta ou arquivo corrompido.");
-        }
-        
-        // Limpar configuração
-        if ($opensslConf) {
-            putenv("OPENSSL_CONF");
+            
+        } finally {
+            // Limpar arquivos temporários
+            if (file_exists($tempPfx)) @unlink($tempPfx);
+            if (file_exists($tempPem)) @unlink($tempPem);
         }
         
         // Converter certificado de PEM para DER
