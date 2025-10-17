@@ -132,27 +132,44 @@ class SignatureController extends Controller
             // 2) Cms Params (dados para assinar localmente)
             $params = GedApi::padesCmsParams($documentId);
 
-            // 3) Assina localmente os dados (A1)
+            // 3) Carrega certificado PFX e EXTRAI CADEIA COMPLETA ✅
             $pfxData = $request->file('certificate')->get();
             $password = $request->input('password');
-            openssl_pkcs12_read($pfxData, $certs, $password);
+            
+            // ✅ IMPORTANTE: Usar CertificateHelper para extrair cadeia completa
+            // Isso resolve o problema de "certificado inválido" no Adobe Reader
+            $certHelper = new \Ged\ApiLaravel\Support\CertificateHelper();
+            $certData = $certHelper->loadPfxFromContent($pfxData, $password);
+            
+            // Converter cadeia DER para base64
+            $chainBase64 = array_map('base64_encode', $certData['chain']);
 
+            // 4) Assina localmente os dados (A1)
             $toBeSignedDer = hex2bin($params['to_be_signed_der_hex']);
-            openssl_sign($toBeSignedDer, $cmsDer, $certs['pkey'], OPENSSL_ALGO_SHA256);
+            openssl_sign($toBeSignedDer, $cmsDer, $certData['privateKey'], OPENSSL_ALGO_SHA256);
             $cmsDerHex = bin2hex($cmsDer);
 
-            // 4) Inject
-            $inject = GedApi::padesInject($documentId, $params['field_name'], $cmsDerHex);
+            // 5) Inject COM CADEIA COMPLETA ✅
+            $certBase64 = base64_encode($certData['certificate']);
+            $inject = GedApi::padesInjectPkcs1(
+                $documentId, 
+                $params['field_name'], 
+                $cmsDerHex,
+                $certBase64,
+                $chainBase64  // ← CADEIA COMPLETA (intermediários + raiz)
+            );
 
-            // 5) Finalize
+            // 6) Finalize
             $final = GedApi::padesFinalize($documentId);
             $filename = 'signed_pades_' . time() . '.pdf';
             Storage::put("signatures/{$filename}", base64_decode($final['pdf_base64']));
 
             return response()->json([
                 'success' => true,
-                'message' => 'PDF assinado (PAdES) com sucesso',
+                'message' => 'PDF assinado com PAdES e cadeia completa (Adobe Reader compatível)',
                 'file' => $filename,
+                'document_id' => $documentId,
+                'chain_certificates' => count($chainBase64),
             ]);
 
         } catch (\Exception $e) {
