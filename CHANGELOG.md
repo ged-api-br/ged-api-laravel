@@ -1,5 +1,28 @@
 # Changelog - ged/api-laravel
 
+## [2.4.0] - 2025-10-18
+
+### Added
+- ✅ **Visual Signature Support (Optional)** - Suporte completo para assinaturas visuais opcionais
+  - Novo método `setVisualRepresentationWithRect()` em `PadesSignatureStarter`
+  - Aceita coordenadas de retângulo (x, y, width, height, page)
+  - Parâmetros opcionais: signer_name, reason, location, contact
+  - Flags de exibição: show_signer_name, show_date, show_reason
+- ✅ **Backend Integration** - Scripts Python atualizados
+  - `prepare_pdf.py` - Aceita `--visual-data` com coordenadas
+  - `add_field_endesive_clone.py` - Suporte a assinaturas visuais incrementais
+  - Conversão automática de coordenadas (top-left → bottom-left)
+- ✅ **Full Compatibility** - Retrocompatível com formato anterior (`anots`)
+
+### Changed
+- 📝 **PadesController** - Atualizado para processar `visual_data` opcional
+- 📝 **SignatureDialog** - Frontend envia coordenadas do retângulo de assinatura
+
+### Notes
+- Assinaturas podem ser **invisíveis** (padrão) ou **visíveis** (com coordenadas)
+- 100% opcional - usuário decide se adiciona aparência visual
+- Coordenadas são convertidas automaticamente para o sistema PDF
+
 ## [2.3.0] - 2025-10-18
 
 ### Added

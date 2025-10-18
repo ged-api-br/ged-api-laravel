@@ -297,6 +297,53 @@ class PadesSignatureStarter
         return $this;
     }
     
+    /**
+     * Define representação visual com coordenadas específicas (retângulo)
+     * 
+     * @param array $rect Coordenadas do retângulo ['x' => float, 'y' => float, 'width' => float, 'height' => float, 'page' => int]
+     * @param string|null $signerName Nome do assinante (opcional)
+     * @param string|null $reason Razão da assinatura (opcional)
+     * @param string|null $location Localização (opcional)
+     * @param string|null $contact Contato (opcional)
+     * @param bool $showSignerName Mostrar nome do assinante (padrão: true)
+     * @param bool $showDate Mostrar data (padrão: true)
+     * @param bool $showReason Mostrar razão (padrão: true)
+     * @return self Para encadeamento de métodos
+     * 
+     * @example
+     * $starter->setVisualRepresentationWithRect([
+     *     'x' => 100,
+     *     'y' => 200,
+     *     'width' => 200,
+     *     'height' => 80,
+     *     'page' => 1
+     * ], 'João Silva', 'Aprovação do documento', 'São Paulo', 'joao@example.com');
+     */
+    public function setVisualRepresentationWithRect(
+        array $rect,
+        ?string $signerName = null,
+        ?string $reason = null,
+        ?string $location = null,
+        ?string $contact = null,
+        bool $showSignerName = true,
+        bool $showDate = true,
+        bool $showReason = true
+    ): self
+    {
+        $this->visualRepresentation = [
+            'rect' => $rect,
+            'signer_name' => $signerName,
+            'reason' => $reason,
+            'location' => $location,
+            'contact' => $contact,
+            'show_signer_name' => $showSignerName,
+            'show_date' => $showDate,
+            'show_reason' => $showReason,
+        ];
+        
+        return $this;
+    }
+    
     // ========== Configuração Adicional ==========
     
     /**
