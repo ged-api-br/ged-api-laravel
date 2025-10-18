@@ -1,5 +1,17 @@
 # Changelog - ged/api-laravel
 
+## [2.4.2] - 2025-10-18
+
+### Fixed
+- ✅ **padesPrepareFromFileWithVisual()** - Corrigido envio de visual_data
+  - Agora usa JSON payload ao invés de multipart/form-data
+  - visual_data enviado como array (não JSON string)
+  - Corrige erro "The visual data must be an array"
+
+### Notes
+- Usa fileBase64 + JSON ao invés de attach() + multipart
+- Permite envio correto de arrays aninhados
+
 ## [2.4.1] - 2025-10-18
 
 ### Added

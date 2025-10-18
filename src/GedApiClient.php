@@ -170,20 +170,27 @@ class GedApiClient
     public function padesPrepareFromFileWithVisual(string $filePath, array $visualData): array
     {
         try {
-            $request = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'X-API-KEY' => $this->apiKey,
-            ])
-            ->timeout(60)
-            ->attach('file', file_get_contents($filePath), basename($filePath));
+            // Para multipart/form-data com arrays, precisamos enviar cada campo do visual_data separadamente
+            // ou enviar fileBase64 ao invés de attach()
             
-            // Adicionar visual_data
-            $fields = [
-                'visible' => '1',  // Visível se tem visual_data
-                'visual_data' => json_encode($visualData)
+            // Ler arquivo e converter para base64
+            $fileContent = file_get_contents($filePath);
+            $fileBase64 = base64_encode($fileContent);
+            
+            // Montar payload como JSON (não multipart)
+            $payload = [
+                'fileBase64' => $fileBase64,
+                'visible' => true,
+                'visual_data' => $visualData  // Enviar como array, não JSON string
             ];
             
-            $response = $request->post($this->baseUri . 'pades/prepare', $fields);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-API-KEY' => $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])
+            ->timeout(60)
+            ->post($this->baseUri . 'pades/prepare', $payload);
             
             if ($response->failed()) {
                 throw new GedApiException(
