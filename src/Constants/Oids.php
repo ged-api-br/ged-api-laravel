@@ -191,6 +191,34 @@ class Oids
      */
     public const ICPBR_CADES_ADR_TEMPO = '2.16.76.1.7.1.2.2';
     
+    // ========== ICP-Brasil Certificate Policy OIDs ==========
+    
+    /**
+     * Política de Certificado Tipo A1 (Software)
+     * OID: 2.16.76.1.2.1
+     */
+    public const ICPBR_CERT_A1 = '2.16.76.1.2.1';
+    
+    /**
+     * Política de Certificado Tipo A3 (Hardware - Token/Smartcard)
+     * OID: 2.16.76.1.2.3
+     */
+    public const ICPBR_CERT_A3 = '2.16.76.1.2.3';
+    
+    /**
+     * Política de Certificado A1 - AC Safeweb RFB
+     * OID: 2.16.76.1.2.1.51
+     * Autoridade Certificadora: Safeweb (Receita Federal do Brasil)
+     */
+    public const ICPBR_CERT_A1_SAFEWEB_RFB = '2.16.76.1.2.1.51';
+    
+    /**
+     * Política de Certificado A3 - AC Safeweb RFB
+     * OID: 2.16.76.1.2.3.48
+     * Autoridade Certificadora: Safeweb (Receita Federal do Brasil)
+     */
+    public const ICPBR_CERT_A3_SAFEWEB_RFB = '2.16.76.1.2.3.48';
+    
     // ========== Adobe PDF Signature ==========
     
     /**
@@ -314,6 +342,65 @@ class Oids
             self::ICPBR_CADES_ADR_BASICA,
             self::ICPBR_CADES_ADR_TEMPO,
         ]);
+    }
+    
+    /**
+     * Verifica se um OID é de certificado tipo A1
+     * 
+     * @param string $oid OID a verificar
+     * @return bool True se for certificado A1
+     */
+    public static function isCertificateA1(string $oid): bool
+    {
+        return str_starts_with($oid, self::ICPBR_CERT_A1);
+    }
+    
+    /**
+     * Verifica se um OID é de certificado tipo A3
+     * 
+     * @param string $oid OID a verificar
+     * @return bool True se for certificado A3
+     */
+    public static function isCertificateA3(string $oid): bool
+    {
+        return str_starts_with($oid, self::ICPBR_CERT_A3);
+    }
+    
+    /**
+     * Retorna o tipo de certificado pelo OID
+     * 
+     * @param string $oid OID do certificado
+     * @return string|null 'A1', 'A3' ou null se não for ICP-Brasil
+     */
+    public static function getCertificateType(string $oid): ?string
+    {
+        if (self::isCertificateA1($oid)) {
+            return 'A1';
+        }
+        
+        if (self::isCertificateA3($oid)) {
+            return 'A3';
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Retorna a descrição de um OID de certificado
+     * 
+     * @param string $oid OID do certificado
+     * @return string|null Descrição ou null se não encontrado
+     */
+    public static function getCertificateDescription(string $oid): ?string
+    {
+        $descriptions = [
+            self::ICPBR_CERT_A1 => 'Certificado ICP-Brasil Tipo A1 (Software)',
+            self::ICPBR_CERT_A3 => 'Certificado ICP-Brasil Tipo A3 (Hardware)',
+            self::ICPBR_CERT_A1_SAFEWEB_RFB => 'Certificado A1 - AC Safeweb RFB',
+            self::ICPBR_CERT_A3_SAFEWEB_RFB => 'Certificado A3 - AC Safeweb RFB',
+        ];
+        
+        return $descriptions[$oid] ?? null;
     }
 }
 

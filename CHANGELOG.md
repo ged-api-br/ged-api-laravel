@@ -1,5 +1,25 @@
 # Changelog - ged/api-laravel
 
+## [2.3.0] - 2025-10-18
+
+### Added
+- ✅ **OID Support - AC Safeweb RFB** - Adicionados OIDs para certificados Safeweb RFB
+  - `Oids::ICPBR_CERT_A1_SAFEWEB_RFB` (2.16.76.1.2.1.51) - Certificado A1
+  - `Oids::ICPBR_CERT_A3_SAFEWEB_RFB` (2.16.76.1.2.3.48) - Certificado A3
+- ✅ **Certificate Type Detection** - Novos métodos utilitários:
+  - `Oids::isCertificateA1($oid)` - Verifica se é certificado A1
+  - `Oids::isCertificateA3($oid)` - Verifica se é certificado A3
+  - `Oids::getCertificateType($oid)` - Retorna 'A1', 'A3' ou null
+  - `Oids::getCertificateDescription($oid)` - Retorna descrição do certificado
+
+### Changed
+- 📝 **Oids Class** - Expandida com suporte a políticas de certificados ICP-Brasil
+- 📝 **Documentation** - Adicionada seção para OIDs de certificados
+
+### Notes
+- Certificados A1 da AC Safeweb RFB agora são reconhecidos automaticamente
+- Preparado para futura implementação de suporte A3 (Hardware Token/Smartcard)
+
 ## [2.2.0] - 2025-10-17
 
 ### Fixed
