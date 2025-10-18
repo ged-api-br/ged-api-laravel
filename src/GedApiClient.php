@@ -158,6 +158,48 @@ class GedApiClient
             throw new GedApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
+    
+    /**
+     * Preparar PDF com visual_data (novo formato v2.4.0)
+     * 
+     * @param string $filePath Caminho do arquivo PDF
+     * @param array $visualData Dados de aparência visual ['rect' => [...], 'signer_name' => ..., etc]
+     * @return array Resposta da API
+     * @throws GedApiException
+     */
+    public function padesPrepareFromFileWithVisual(string $filePath, array $visualData): array
+    {
+        try {
+            $request = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-API-KEY' => $this->apiKey,
+            ])
+            ->timeout(60)
+            ->attach('file', file_get_contents($filePath), basename($filePath));
+            
+            // Adicionar visual_data
+            $fields = [
+                'visible' => '1',  // Visível se tem visual_data
+                'visual_data' => json_encode($visualData)
+            ];
+            
+            $response = $request->post($this->baseUri . 'pades/prepare', $fields);
+            
+            if ($response->failed()) {
+                throw new GedApiException(
+                    $response->json('message') ?? 'Erro na requisição',
+                    $response->status()
+                );
+            }
+            
+            return $response->json();
+            
+        } catch (GedApiException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new GedApiException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
 
     /** CMS Params (FASE 2) */
     public function padesCmsParams(string $documentId, string $signerCertDerBase64, ?string $fieldName = null): array

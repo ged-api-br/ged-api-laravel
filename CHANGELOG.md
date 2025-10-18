@@ -1,5 +1,17 @@
 # Changelog - ged/api-laravel
 
+## [2.4.1] - 2025-10-18
+
+### Added
+- ✅ **GedApiClient::padesPrepareFromFileWithVisual()** - Novo método para preparar PDF com visual_data
+  - Aceita array visual_data com coordenadas de retângulo
+  - Envia automaticamente como multipart/form-data
+  - Marca assinatura como visível automaticamente
+
+### Notes
+- Método compatível com PadesStarterController do CamaraTech
+- Retrocompatível com `padesPrepareFromFile()` (sem visual)
+
 ## [2.4.0] - 2025-10-18
 
 ### Added
