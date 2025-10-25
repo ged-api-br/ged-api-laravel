@@ -1,19 +1,16 @@
 # Changelog - ged/api-laravel
 
-## [2.4.4] - 2025-01-27
+## [2.4.5] - 2025-01-27
 
 ### Changed
-- ✅ **README.md** - Documentação aprimorada
-  - Descrição detalhada dos recursos principais
-  - Suporte a Assinaturas Incrementais
-  - Controle de Atualizações Incrementais - DocMDP
-  - Suporte a Posicionamento da Representação Visual
-  - Melhor organização das seções
+- ✅ **README.md** - Formatação melhorada
+  - Lista de recursos com bullets padronizados
+  - Melhor legibilidade da lista de recursos
 
 ### Notes
-- Documentação mais clara sobre os recursos disponíveis
+- Pequeno ajuste de formatação para melhor apresentação
 
-## [2.4.2] - 2025-10-18
+## [2.4.4] - 2025-01-27
 
 ### Fixed
 - ✅ **padesPrepareFromFileWithVisual()** - Corrigido envio de visual_data
