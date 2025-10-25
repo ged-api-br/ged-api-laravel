@@ -44,12 +44,10 @@ $result = GedApi::padesInjectPkcs1($documentId, $signatureBase64, $certificateBa
 $result = GedApi::padesFinalize($documentId);
 ```
 
-## 📚 Documentação
-
-Documentação completa disponível em: https://ged.api.br/docs
-
 ## 🤝 Suporte
 
 - Email: suporte@ged.api.br
-- Docs: https://ged.api.br/docs
+- Email: welinaldo@gmail.com
+
+*Disponível apenas para Laravel com Certificado A1 (por enquanto...)
 
