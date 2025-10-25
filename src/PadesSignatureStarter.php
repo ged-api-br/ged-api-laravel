@@ -411,7 +411,7 @@ class PadesSignatureStarter
         
         // Fazer requisição
         try {
-            $response = $this->client->post('pades/start', $payload);
+            $response = $this->client->post('pades/prepare', $payload);
         } catch (\Throwable $e) {
             throw new GedApiException("Erro ao iniciar assinatura: " . $e->getMessage(), $e->getCode(), $e);
         }
