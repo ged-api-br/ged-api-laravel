@@ -1,5 +1,19 @@
 # Changelog - ged/api-laravel
 
+## [2.4.3] - 2025-01-27
+
+### Changed
+- ✅ **composer.json** - Metadados completos para Packagist
+  - Adicionados campos: version, homepage, support
+  - Requisições de desenvolvimento para testes
+- ✅ **README.md** - Documentação completa
+  - Adicionados badges do Packagist
+  - Configuração simplificada
+  - Exemplos práticos de uso
+
+### Notes
+- Preparado para publicação no Packagist
+
 ## [2.4.2] - 2025-10-18
 
 ### Fixed

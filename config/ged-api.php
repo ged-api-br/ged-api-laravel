@@ -10,7 +10,7 @@ return [
     | URL base da GED API. Padrão: https://ged.api.br/api/
     |
     */
-    'base_url' => env('GED_API_BASE_URL', 'https://ged.api.br/api/'),
+    'base_url' => env('GED_API_BASE_URL', 'https://sig.ged.api.br/api'),
 
     /*
     |--------------------------------------------------------------------------
