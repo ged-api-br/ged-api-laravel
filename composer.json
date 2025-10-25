@@ -1,6 +1,11 @@
 {
   "name": "ged/api-laravel",
-  "version": "2.0.0",
+  "version": "2.4.4",
+  "homepage": "https://sig.ged.api.br",
+  "support": {
+    "email": "suporte@ged.api.br",
+    "docs": "https://ged.api.br/docs"
+  },
   "description": "Laravel Package para integração com GED API — Assinatura Digital PAdES ICP-Brasil em 3 Fases",
   "type": "library",
   "license": "MIT",
@@ -25,6 +30,10 @@
     "php": ">=8.0",
     "illuminate/support": "^9.0|^10.0|^11.0",
     "phpseclib/phpseclib": "^3.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^7.0|^8.0|^9.0",
+    "phpunit/phpunit": "^9.0|^10.0"
   },
   "autoload": {
     "psr-4": {

@@ -1,6 +1,10 @@
 # 📦 GED API Laravel Package
 
-Laravel Package oficial para integração com o **GED.API.BR** — Sistema de Assinatura Digital ICP-Brasil.
+Laravel Package oficial para integração com o **GED.API.BR**
+Sistema de Assinatura Digital PAdES com padrão ICP-Brasil;
+Suporte a Assinaturas Incrementais;
+Controle de Atualizações Incrementais - DocMDP - (Modification Detection and Prevention)
+Suporte a Posicionamento da Representação Visual da Assinatura;
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/ged/api-laravel.svg)](https://packagist.org/packages/ged/api-laravel)
 [![Total Downloads](https://img.shields.io/packagist/dt/ged/api-laravel.svg)](https://packagist.org/packages/ged/api-laravel)
@@ -29,7 +33,7 @@ GED_API_KEY=sua-chave-api
 
 > A URL base já está configurada por padrão. Apenas configure a chave da API se necessário.
 
-## 📖 Uso
+## 📖 Uso Básico
 
 ```php
 use Ged\ApiLaravel\Facades\GedApi;
