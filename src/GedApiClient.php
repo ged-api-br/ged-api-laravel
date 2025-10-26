@@ -60,7 +60,7 @@ class GedApiClient
                 'X-API-KEY' => $this->apiKey,
                 'Accept' => 'application/json',
             ])
-            ->timeout(300)
+            ->timeout(180)
             ->get($this->baseUri . $endpoint, $query);
             
             if ($response->failed()) {
@@ -94,13 +94,32 @@ class GedApiClient
             ->post($this->baseUri . $endpoint, $payload);
             
             if ($response->failed()) {
+                \Log::error('❌ GED API POST FAILED:', [
+                    'endpoint' => $endpoint,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'json' => $response->json(),
+                ]);
+                
                 throw new GedApiException(
                     $response->json('message') ?? 'Erro na requisição',
                     $response->status()
                 );
             }
             
-            return $response->json();
+            $result = $response->json();
+            
+            // Garantir que sempre retorna array
+            if (!is_array($result)) {
+                \Log::error('❌ GED API retornou não-array:', [
+                    'endpoint' => $endpoint,
+                    'result' => $result,
+                    'body' => $response->body(),
+                ]);
+                throw new GedApiException('Resposta inválida da API (não é array)');
+            }
+            
+            return $result;
             
         } catch (GedApiException $e) {
             throw $e;
@@ -127,36 +146,11 @@ class GedApiClient
     /** Prepare com multipart (arquivo local) */
     public function padesPrepareFromFile(string $filePath, bool $visible = false, ?array $anots = null): array
     {
-        try {
-            $request = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'X-API-KEY' => $this->apiKey,
-            ])
-            ->timeout(300)
-            ->attach('file', file_get_contents($filePath), basename($filePath));
-            
-            // Adicionar campos
-            $fields = ['visible' => $visible ? '1' : '0'];
-            if ($anots !== null) {
-                $fields['anots'] = json_encode($anots);
-            }
-            
-            $response = $request->post($this->baseUri . 'pades/prepare', $fields);
-            
-            if ($response->failed()) {
-                throw new GedApiException(
-                    $response->json('message') ?? 'Erro na requisição',
-                    $response->status()
-                );
-            }
-            
-            return $response->json();
-            
-        } catch (GedApiException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            throw new GedApiException($e->getMessage(), $e->getCode(), $e);
-        }
+        // Converter arquivo para base64 e usar o método base64 (mais confiável)
+        $fileContent = file_get_contents($filePath);
+        $fileBase64 = base64_encode($fileContent);
+        
+        return $this->padesPrepareFromBase64($fileBase64, $visible, $anots);
     }
     
     /**
@@ -181,18 +175,39 @@ class GedApiClient
             $payload = [
                 'fileBase64' => $fileBase64,
                 'visible' => true,
-                'visual_data' => $visualData  // Enviar como array, não JSON string
+                'visual_data' => $visualData  // Enviar como array, não JSON string (inclui background_color)
             ];
+            
+            // LOG: Visual data sendo enviado para GED API
+            \Log::info('🎨 SDK → GED API - Payload Completo:', [
+                'url' => $this->baseUri . 'pades/prepare',
+                'payload' => [
+                    'fileBase64_length' => strlen($fileBase64),
+                    'visible' => true,
+                    'visual_data' => $visualData
+                ]
+            ]);
             
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'X-API-KEY' => $this->apiKey,
                 'Content-Type' => 'application/json',
             ])
-            ->timeout(300)
+            ->timeout(300) // 5 minutos para arquivos grandes (TESTE)
             ->post($this->baseUri . 'pades/prepare', $payload);
             
+            \Log::info('📥 GED API → SDK - Resposta:', [
+                'status' => $response->status(),
+                'body' => $response->json()
+            ]);
+            
             if ($response->failed()) {
+                \Log::error('❌ GED API ERROR:', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'json' => $response->json()
+                ]);
+                
                 throw new GedApiException(
                     $response->json('message') ?? 'Erro na requisição',
                     $response->status()

@@ -1,5 +1,23 @@
 # Changelog - ged/api-laravel
 
+## [2.4.7] - 2025-10-26
+
+### Changed
+- ✅ **padesPrepareFromFile()** - Simplificado para usar base64
+  - Agora converte arquivo para base64 e chama padesPrepareFromBase64()
+  - Remove complexidade de multipart/form-data
+  - Mais confiável e compatível
+
+### Fixed
+- ✅ **post()** - Validação de retorno
+  - Garante que sempre retorna array
+  - Adiciona logs detalhados quando falha
+  - Lança exceção clara quando retorno não é array
+
+### Notes
+- Soluciona problemas com multipart no Laravel HTTP Client
+- Mantém compatibilidade total com versões anteriores
+
 ## [2.4.6] - 2025-10-26
 
 ### Changed
