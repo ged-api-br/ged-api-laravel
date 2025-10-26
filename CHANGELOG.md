@@ -1,5 +1,17 @@
 # Changelog - ged/api-laravel
 
+## [2.4.6] - 2025-10-26
+
+### Changed
+- ✅ **GedApiClient** - Timeout aumentado para arquivos grandes
+  - Todos os métodos HTTP agora usam timeout de 300 segundos (5 minutos)
+  - Suporta upload/download de arquivos até 100MB
+  - Resolve problema de timeout com arquivos grandes em base64
+
+### Notes
+- Necessário para processar documentos > 15MB em base64 (~20MB payload)
+- Compatível com configurações de servidor (upload_max_filesize, post_max_size)
+
 ## [2.4.5] - 2025-01-27
 
 ### Changed

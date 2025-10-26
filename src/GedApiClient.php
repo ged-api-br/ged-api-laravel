@@ -60,7 +60,7 @@ class GedApiClient
                 'X-API-KEY' => $this->apiKey,
                 'Accept' => 'application/json',
             ])
-            ->timeout(60)
+            ->timeout(300)
             ->get($this->baseUri . $endpoint, $query);
             
             if ($response->failed()) {
@@ -90,7 +90,7 @@ class GedApiClient
                 'X-API-KEY' => $this->apiKey,
                 'Accept' => 'application/json',
             ])
-            ->timeout(60)
+            ->timeout(300)
             ->post($this->baseUri . $endpoint, $payload);
             
             if ($response->failed()) {
@@ -132,7 +132,7 @@ class GedApiClient
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'X-API-KEY' => $this->apiKey,
             ])
-            ->timeout(60)
+            ->timeout(300)
             ->attach('file', file_get_contents($filePath), basename($filePath));
             
             // Adicionar campos
@@ -189,7 +189,7 @@ class GedApiClient
                 'X-API-KEY' => $this->apiKey,
                 'Content-Type' => 'application/json',
             ])
-            ->timeout(60)
+            ->timeout(300)
             ->post($this->baseUri . 'pades/prepare', $payload);
             
             if ($response->failed()) {
