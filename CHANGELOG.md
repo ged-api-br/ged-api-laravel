@@ -1,5 +1,15 @@
 # Changelog - ged/api-laravel
 
+## [2.4.8] - 2025-01-30
+
+### Changed
+- ✅ **Removido menu "Caixa de Entrada"** da sidebar do frontend
+  - Item "Meus Documentos" removido junto com o grupo
+  - Simplifica navegação e remove itens não utilizados
+
+### Notes
+- Limpeza de interface, removendo funcionalidades não utilizadas
+
 ## [2.4.7] - 2025-10-26
 
 ### Changed
