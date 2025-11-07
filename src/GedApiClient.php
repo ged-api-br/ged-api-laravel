@@ -94,13 +94,6 @@ class GedApiClient
             ->post($this->baseUri . $endpoint, $payload);
             
             if ($response->failed()) {
-                \Log::error('❌ GED API POST FAILED:', [
-                    'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'json' => $response->json(),
-                ]);
-                
                 throw new GedApiException(
                     $response->json('message') ?? 'Erro na requisição',
                     $response->status()
@@ -111,11 +104,6 @@ class GedApiClient
             
             // Garantir que sempre retorna array
             if (!is_array($result)) {
-                \Log::error('❌ GED API retornou não-array:', [
-                    'endpoint' => $endpoint,
-                    'result' => $result,
-                    'body' => $response->body(),
-                ]);
                 throw new GedApiException('Resposta inválida da API (não é array)');
             }
             
@@ -178,16 +166,6 @@ class GedApiClient
                 'visual_data' => $visualData  // Enviar como array, não JSON string (inclui background_color)
             ];
             
-            // LOG: Visual data sendo enviado para GED API
-            \Log::info('🎨 SDK → GED API - Payload Completo:', [
-                'url' => $this->baseUri . 'pades/prepare',
-                'payload' => [
-                    'fileBase64_length' => strlen($fileBase64),
-                    'visible' => true,
-                    'visual_data' => $visualData
-                ]
-            ]);
-            
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'X-API-KEY' => $this->apiKey,
@@ -196,18 +174,7 @@ class GedApiClient
             ->timeout(300) // 5 minutos para arquivos grandes (TESTE)
             ->post($this->baseUri . 'pades/prepare', $payload);
             
-            \Log::info('📥 GED API → SDK - Resposta:', [
-                'status' => $response->status(),
-                'body' => $response->json()
-            ]);
-            
             if ($response->failed()) {
-                \Log::error('❌ GED API ERROR:', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'json' => $response->json()
-                ]);
-                
                 throw new GedApiException(
                     $response->json('message') ?? 'Erro na requisição',
                     $response->status()
