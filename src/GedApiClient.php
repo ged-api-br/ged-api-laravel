@@ -24,10 +24,10 @@ class GedApiClient
      * @param string $pdfPath Caminho do arquivo PDF
      * @param string $pfxPath Caminho do certificado PFX/P12
      * @param string $password Senha do certificado
-     * @param array|null $visualData Dados visuais da assinatura (opcional)
+     * @param array|null $options Opcoes visuais: 'visual_data' (posicao da assinatura) e/ou 'stamps' (estampas em multiplas posicoes)
      * @return array ['success', 'signed_pdf_base64', 'download_url']
      */
-    public function sign(string $pdfPath, string $pfxPath, string $password, ?array $visualData = null): array
+    public function sign(string $pdfPath, string $pfxPath, string $password, ?array $options = null): array
     {
         if (!file_exists($pdfPath)) {
             throw new GedApiException("PDF nao encontrado: {$pdfPath}");
@@ -47,9 +47,19 @@ class GedApiClient
             'fileBase64' => base64_encode(file_get_contents($pdfPath)),
             'signerCertBase64' => $certDerBase64,
         ];
-        if ($visualData !== null) {
+
+        $visualData = $options['visual_data'] ?? $options ?? null;
+        $stamps = $options['stamps'] ?? null;
+
+        // Se recebeu 'rect' direto no options (formato simples), tratar como visual_data
+        if ($visualData !== null && isset($visualData['rect']) && !isset($visualData['visual_data'])) {
             $startPayload['visible'] = true;
             $startPayload['visual_data'] = $visualData;
+        }
+
+        // Estampas visuais em multiplas posicoes
+        if ($stamps !== null) {
+            $startPayload['stamps'] = $stamps;
         }
 
         $startResult = $this->post('pades/sign/start', $startPayload);
@@ -86,10 +96,10 @@ class GedApiClient
      * @param string $pdfBase64 PDF em base64
      * @param string $pfxContent Conteudo binario do PFX
      * @param string $password Senha do certificado
-     * @param array|null $visualData Dados visuais da assinatura (opcional)
+     * @param array|null $options Opcoes visuais (opcional)
      * @return array ['success', 'signed_pdf_base64', 'download_url']
      */
-    public function signFromBase64(string $pdfBase64, string $pfxContent, string $password, ?array $visualData = null): array
+    public function signFromBase64(string $pdfBase64, string $pfxContent, string $password, ?array $options = null): array
     {
         $tempPfx = tempnam(sys_get_temp_dir(), 'pfx_');
         $tempPdf = tempnam(sys_get_temp_dir(), 'pdf_');
@@ -97,7 +107,7 @@ class GedApiClient
         try {
             file_put_contents($tempPfx, $pfxContent);
             file_put_contents($tempPdf, base64_decode($pdfBase64));
-            return $this->sign($tempPdf, $tempPfx, $password, $visualData);
+            return $this->sign($tempPdf, $tempPfx, $password, $options);
         } finally {
             @unlink($tempPfx);
             @unlink($tempPdf);
