@@ -38,20 +38,9 @@ class GedApiClient
 
         // Extrair certificado publico e chave privada do PFX (local)
         $pfxContent = file_get_contents($pfxPath);
-        $certs = [];
-        if (!openssl_pkcs12_read($pfxContent, $certs, $password)) {
-            throw new GedApiException('Falha ao abrir certificado. Verifique a senha.');
-        }
-
-        $privateKey = openssl_pkey_get_private($certs['pkey']);
-        if (!$privateKey) {
-            throw new GedApiException('Falha ao extrair chave privada do certificado.');
-        }
-
-        // Converter cert PEM para DER base64
-        openssl_x509_export($certs['cert'], $certPemExport);
-        preg_match('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $certPemExport, $matches);
-        $certDerBase64 = str_replace(["\r", "\n", " "], '', $matches[1] ?? '');
+        $parsed = $this->loadPfx($pfxContent, $password);
+        $privateKey = $parsed['privateKey'];
+        $certDerBase64 = $parsed['certDerBase64'];
 
         // Etapa 1: Enviar PDF + cert publico ao servidor
         $startPayload = [
@@ -156,6 +145,87 @@ class GedApiClient
     public function verifyCertificate(string $serial): array
     {
         return $this->get("certificate/verify/{$serial}");
+    }
+
+    // ===== PFX =====
+
+    /**
+     * Carrega PFX com fallback para OpenSSL 3.x (algoritmos legacy)
+     */
+    private function loadPfx(string $pfxContent, string $password): array
+    {
+        $certs = [];
+
+        // Tentativa 1: openssl_pkcs12_read nativo
+        if (openssl_pkcs12_read($pfxContent, $certs, $password)) {
+            return $this->parsePfxCerts($certs);
+        }
+
+        // Tentativa 2: OpenSSL CLI com -legacy (OpenSSL 3.x)
+        $tempPfx = tempnam(sys_get_temp_dir(), 'pfx_') . '.p12';
+        $tempPem = tempnam(sys_get_temp_dir(), 'pem_') . '.pem';
+
+        try {
+            file_put_contents($tempPfx, $pfxContent);
+
+            $cmd = sprintf(
+                'openssl pkcs12 -in %s -out %s -nodes -legacy -password pass:%s 2>&1',
+                escapeshellarg($tempPfx),
+                escapeshellarg($tempPem),
+                escapeshellarg($password)
+            );
+
+            exec($cmd, $output, $rc);
+
+            if ($rc !== 0) {
+                throw new GedApiException('Falha ao abrir certificado. Verifique a senha.');
+            }
+
+            $pemContent = file_get_contents($tempPem);
+
+            // Extrair chave privada
+            if (!preg_match('/-----BEGIN PRIVATE KEY-----(.+?)-----END PRIVATE KEY-----/s', $pemContent, $keyMatch) &&
+                !preg_match('/-----BEGIN RSA PRIVATE KEY-----(.+?)-----END RSA PRIVATE KEY-----/s', $pemContent, $keyMatch)) {
+                throw new GedApiException('Chave privada nao encontrada no certificado.');
+            }
+
+            $privateKey = openssl_pkey_get_private($keyMatch[0]);
+            if (!$privateKey) {
+                throw new GedApiException('Falha ao extrair chave privada.');
+            }
+
+            // Extrair certificado
+            if (!preg_match('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $pemContent, $certMatch)) {
+                throw new GedApiException('Certificado nao encontrado no PFX.');
+            }
+
+            $certDerBase64 = str_replace(["\r", "\n", " "], '', $certMatch[1]);
+
+            return [
+                'privateKey' => $privateKey,
+                'certDerBase64' => $certDerBase64,
+            ];
+        } finally {
+            @unlink($tempPfx);
+            @unlink($tempPem);
+        }
+    }
+
+    private function parsePfxCerts(array $certs): array
+    {
+        $privateKey = openssl_pkey_get_private($certs['pkey']);
+        if (!$privateKey) {
+            throw new GedApiException('Falha ao extrair chave privada do certificado.');
+        }
+
+        openssl_x509_export($certs['cert'], $certPemExport);
+        preg_match('/-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----/s', $certPemExport, $matches);
+        $certDerBase64 = str_replace(["\r", "\n", " "], '', $matches[1] ?? '');
+
+        return [
+            'privateKey' => $privateKey,
+            'certDerBase64' => $certDerBase64,
+        ];
     }
 
     // ===== HTTP =====
