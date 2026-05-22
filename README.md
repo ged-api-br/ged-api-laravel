@@ -1,6 +1,6 @@
 # GED API Laravel Package
 
-Package oficial para integrar com a **GED.API.BR** - Assinatura Digital e Certificados.
+Laravel Package para integracao com GED API.
 
 ## Instalacao
 
